@@ -89,6 +89,12 @@ if __name__ == '__main__':
     quantized_model.eval()
     quantized_model = quantized_model.cuda()
 
+    print("Test model without distilled data")
+    model_0 = copy.deepcopy(quantized_model)
+    freeze_model(model_0)
+    model_0 = nn.DataParallel(model_0).cuda()
+    test(model_0, test_loader)
+
     # Update activation range according to distilled data
     update(quantized_model, dataloader)
     print('****** Zero Shot Quantization Finished ******')
@@ -101,3 +107,4 @@ if __name__ == '__main__':
 
     # Test the final quantized model
     test(quantized_model, test_loader)
+
