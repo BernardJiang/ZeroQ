@@ -83,6 +83,9 @@ def getDistilData(teacher_model,
     i3 = images + 0.5
     grid = torchvision.utils.make_grid(i3)
     sumwriter.add_image('images_before', grid, 0)
+    
+    std, mean = torch.std_mean(images, unbiased=False)
+    print("Before training min/max= {} {} std/mean {} {} ".format(torch.min(images), torch.max(images), std, mean))
 
     eps = 1e-6
     # initialize hooks and single-precision model
@@ -160,6 +163,9 @@ def getDistilData(teacher_model,
             if i==0:
                 if it % 100 == 0 or it + 1 >= 500:
                     print("it {} total_loss {} mean_loss {} std_loss {}".format(it, total_loss, mean_loss, std_loss))
+                    std, mean = torch.std_mean(gaussian_data, unbiased=False)
+                    print("training {} min/max= {} {} std/mean {} {} ".format(it, torch.min(gaussian_data), torch.max(gaussian_data), std, mean))
+
                     sumwriter.add_scalars('epoch', {'total_loss': total_loss,
                                                     'mean_loss': mean_loss,
                                                     'std_loss': std_loss}, it)
@@ -181,6 +187,8 @@ def getDistilData(teacher_model,
     i3 = tensor2 + 0.5
     grid = torchvision.utils.make_grid(i3)
     sumwriter.add_image('images_after', grid, 0)
+    std, mean = torch.std_mean(tensor2, unbiased=False)
+    print("after training {} min/max= {} {} std/mean {} {} ".format(it, torch.min(tensor2), torch.max(tensor2), std, mean))
 
     sumwriter.close()
     return refined_gaussian
