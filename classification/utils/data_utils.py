@@ -95,6 +95,13 @@ def getTestData(dataset='imagenet',
                                  batch_size=batch_size,
                                  shuffle=False,
                                  num_workers=32)
+
+        for batch_idx, (inputs, targets) in enumerate(test_loader):
+            std, mean = torch.std_mean(inputs, unbiased=False)
+            print("test data idx{} min/max= {} {} std/mean {} {} ".format(batch_idx, torch.min(inputs), torch.max(inputs), std, mean))
+            # for i in range(inputs.shape[0]):
+            #     print(i, torch.min(inputs[i]), torch.max(inputs[i]))
+
         return test_loader
     elif dataset == 'cifar10':
         data_dir = '/rscratch/yaohuic/data/'

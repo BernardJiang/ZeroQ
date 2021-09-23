@@ -95,3 +95,20 @@ def unfreeze_model(model):
             if isinstance(mod, nn.Module) and 'norm' not in attr:
                 unfreeze_model(mod)
         return model
+
+def print_model_range(model):
+    """
+    freeze the activation range
+    """
+    if type(model) == QuantAct  or type(model) == Quant_Linear or type(model) == Quant_Conv2d:
+        print(model)
+    elif type(model) == nn.Sequential:
+        mods = []
+        for n, m in model.named_children():
+            print_model_range(m)
+    else:
+        for attr in dir(model):
+            mod = getattr(model, attr)
+            if isinstance(mod, nn.Module) and 'norm' not in attr:
+                print_model_range(mod)
+        return model

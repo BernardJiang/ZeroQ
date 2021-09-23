@@ -73,6 +73,7 @@ class QuantAct(Module):
             # in-place operation used on multi-gpus
             self.x_min += -self.x_min + min(self.x_min, x_min)
             self.x_max += -self.x_max + max(self.x_max, x_max)
+            # print("New act min max = ", self.x_min, self.x_max, x_min, x_max)
 
         if not self.full_precision_flag:
             quant_act = self.act_function(x, self.activation_bit, self.x_min,
@@ -123,6 +124,7 @@ class Quant_Linear(Module):
         if not self.full_precision_flag:
             w = self.weight_function(self.weight, self.weight_bit, w_min,
                                      w_max)
+            # print("Linear w_min, max ", w_min, w_max)
         else:
             w = self.weight
         return F.linear(x, weight=w, bias=self.bias)
@@ -169,6 +171,7 @@ class Quant_Conv2d(Module):
         if not self.full_precision_flag:
             w = self.weight_function(self.weight, self.weight_bit, w_min,
                                      w_max)
+            # print("Conv w_min, max ", w_min, w_max)
         else:
             w = self.weight
 

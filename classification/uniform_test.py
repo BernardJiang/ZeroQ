@@ -58,6 +58,10 @@ def arg_parse():
 
 
 if __name__ == '__main__':
+
+    sys.path.insert(0, '/workspace/develop/ZeroQ/classification')
+    os.chdir("/workspace/develop/ZeroQ/classification")
+
     args = arg_parse()
     torch.backends.cudnn.deterministic = False
     torch.backends.cudnn.benchmark = True
@@ -88,6 +92,8 @@ if __name__ == '__main__':
     # Update activation range according to distilled data
     update(quantized_model, dataloader)
     print('****** Zero Shot Quantization Finished ******')
+    
+    # print_model_range(quantized_model)
 
     # Freeze activation range during test
     freeze_model(quantized_model)
