@@ -25,6 +25,13 @@ import torch.nn as nn
 import copy
 import torch.optim as optim
 from utils import *
+from torch.utils.data import Dataset, DataLoader
+
+import torchvision
+from torch.utils.tensorboard import SummaryWriter
+from torchvision import datasets, transforms
+from PIL import Image
+from numpy import asarray
 
 
 def own_loss(A, B):
@@ -55,6 +62,7 @@ def getDistilData(teacher_model,
                   batch_size,
                   num_batch=1,
                   for_inception=False):
+    sumwriter = SummaryWriter()
     """
 	Generate distilled data according to the BatchNorm statistics in the pretrained single-precision model.
 	Currently only support a single GPU.
@@ -70,6 +78,11 @@ def getDistilData(teacher_model,
     dataloader = getRandomData(dataset=dataset,
                                batch_size=batch_size,
                                for_inception=for_inception)
+
+    images = next(iter(dataloader))
+    i3 = images + 0.5
+    grid = torchvision.utils.make_grid(i3)
+    sumwriter.add_image('images_before', grid, 0)
 
     eps = 1e-6
     # initialize hooks and single-precision model
@@ -144,14 +157,30 @@ def getDistilData(teacher_model,
             mean_loss += own_loss(input_mean, tmp_mean)
             std_loss += own_loss(input_std, tmp_std)
             total_loss = mean_loss + std_loss
+            if i==0:
+                if it % 100 == 0 or it + 1 >= 500:
+                    print("it {} total_loss {} mean_loss {} std_loss {}".format(it, total_loss, mean_loss, std_loss))
+                    sumwriter.add_scalars('epoch', {'total_loss': total_loss,
+                                                    'mean_loss': mean_loss,
+                                                    'std_loss': std_loss}, it)
+                    sumwriter.add_histogram("epoch {}".format(it), gaussian_data, bins='auto')
+
 
             # update the distilled data
             total_loss.backward()
             optimizer.step()
             scheduler.step(total_loss.item())
 
-        refined_gaussian.append(gaussian_data.detach().clone())
+        tensor = gaussian_data.detach().clone()
+        refined_gaussian.append(tensor)
 
     for handle in hook_handles:
         handle.remove()
+
+    tensor2 = tensor.cpu()    
+    i3 = tensor2 + 0.5
+    grid = torchvision.utils.make_grid(i3)
+    sumwriter.add_image('images_after', grid, 0)
+
+    sumwriter.close()
     return refined_gaussian
