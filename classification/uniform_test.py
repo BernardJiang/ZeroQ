@@ -25,6 +25,7 @@ import torch.nn as nn
 from pytorchcv.model_provider import get_model as ptcv_get_model
 from utils import *
 from distill_data import *
+from torch.onnx import ONNX_ARCHIVE_MODEL_PROTO_NAME, ExportTypes, OperatorExportTypes, TrainingMode
 
 
 # model settings
@@ -69,12 +70,53 @@ if __name__ == '__main__':
     # Load pretrained model
     model = ptcv_get_model(args.model, pretrained=True)
     print('****** Full precision model loaded ******')
-
+    
+    #save the model.
+    torch.save(model.state_dict(),'./img_dir/mobilenetv2.pt',_use_new_zipfile_serialization=False)
+    try:
+        import onnx
+        onnx_export_file = './img_dir/mobilenetv2_zeroq.onnx'
+        print('\nStarting ONNX export with onnx %s...' % onnx.__version__)
+        print('****onnx file****',onnx_export_file)
+        model.eval()
+        img = torch.zeros((1, 3, 224, 224))
+        y = model(img)  # dry run
+        # torch.onnx.export(  output_names=['classes', 'boxes'] if y is None else ['output'])
+        torch.onnx.export(model,               # model being run
+                            img,                         # model input (or a tuple for multiple inputs)
+                            onnx_export_file,   # where to save the model (can be a file or file-like object)
+                            export_params=True,        # store the trained parameter weights inside the model file
+                            opset_version=11,          # the ONNX version to export the model to
+                            do_constant_folding=False,  # whether to execute constant folding for optimization
+                            input_names = ['images'],   # the model's input names
+                            output_names = ['classes', 'boxes'] if y is None else ['output'], # the model's output names
+                            training=TrainingMode.PRESERVE,
+                            keep_initializers_as_inputs=True,
+                            verbose=True
+        )        # Checks
+        onnx_model = onnx.load(onnx_export_file)  # load onnx model
+        onnx.checker.check_model(onnx_model)  # check onnx model
+        print(onnx.helper.printable_graph(onnx_model.graph))  # print a human readable model
+        print('ONNX export success, saved as %s' % onnx_export_file)
+    except Exception as e:
+        print('ONNX export failure: %s' % e)
+    
     # Load validation data
     test_loader = getTestData(args.dataset,
                               batch_size=args.test_batch_size,
                               path='./data/imagenet/',
                               for_inception=args.model.startswith('inception'))
+
+    i = 0
+    for batch_idx, (inputs, targets) in enumerate(test_loader):
+        x1 = inputs.cpu().numpy()
+        x2 = np.moveaxis(x1, 1, -1)  #move from cxhxw to hxwxc
+        for j in range(x2.shape[0]):
+            x3 = np.reshape(inputs[j], (-1))
+            img_path = os.path.join('./img_dir/trueimages', "IMG{:04d}.txt".format(i))
+            np.savetxt(img_path, x3, delimiter=",", fmt='%f')
+            i+=1
+
     # Generate distilled data
     dataloader = getDistilData(
         model.cuda(),
@@ -83,17 +125,30 @@ if __name__ == '__main__':
         for_inception=args.model.startswith('inception'))
     print('****** Data loaded ******')
 
+    # save all distilled data
+    for idx, x in enumerate(dataloader):
+        x1 = x.cpu().numpy()
+        x2 = np.moveaxis(x1, 1, -1)  #move from cxhxw to hxwxc
+        # x3 = np.reshape(x2, (-1))
+        i = 0
+        for i in range(x2.shape[0]):
+            x3 = np.reshape(x2[i], (-1))
+            img_path = os.path.join('./img_dir/zeroqdata', "IMG{:04d}.txt".format(i))
+            np.savetxt(img_path, x3, delimiter=",", fmt='%f')
+            
+
+
     # Quantize single-precision model to 8-bit model
     quantized_model = quantize_model(model)
     # Freeze BatchNorm statistics
     quantized_model.eval()
     quantized_model = quantized_model.cuda()
 
-    print("Test model without distilled data")
-    model_0 = copy.deepcopy(quantized_model)
-    freeze_model(model_0)
-    model_0 = nn.DataParallel(model_0).cuda()
-    test(model_0, test_loader)
+    # print("Test model without distilled data")
+    # model_0 = copy.deepcopy(quantized_model)
+    # freeze_model(model_0)
+    # model_0 = nn.DataParallel(model_0).cuda()
+    # test(model_0, test_loader)
 
     # Update activation range according to distilled data
     update(quantized_model, dataloader)
@@ -107,4 +162,7 @@ if __name__ == '__main__':
 
     # Test the final quantized model
     test(quantized_model, test_loader)
+
+    torch.save(model.state_dict(),'./img_dir/mobilenetv2_quan.pt',_use_new_zipfile_serialization=False)
+
 

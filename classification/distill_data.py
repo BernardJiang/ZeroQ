@@ -129,7 +129,7 @@ def getDistilData(teacher_model,
         input_mean = torch.zeros(1, 3).cuda()
         input_std = torch.ones(1, 3).cuda()
 
-        for it in range(500):
+        for it in range(200):
             teacher_model.zero_grad()
             optimizer.zero_grad()
             for hook in hooks:
@@ -161,7 +161,7 @@ def getDistilData(teacher_model,
             std_loss += own_loss(input_std, tmp_std)
             total_loss = mean_loss + std_loss
             if i==0:
-                if it % 100 == 0 or it + 1 >= 500:
+                if it % 100 == 0:
                     print("it {} total_loss {} mean_loss {} std_loss {}".format(it, total_loss, mean_loss, std_loss))
                     std, mean = torch.std_mean(gaussian_data, unbiased=False)
                     print("training {} min/max= {} {} std/mean {} {} ".format(it, torch.min(gaussian_data), torch.max(gaussian_data), std, mean))
