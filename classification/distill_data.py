@@ -129,7 +129,7 @@ def getDistilData(teacher_model,
         input_mean = torch.zeros(1, 3).cuda()
         input_std = torch.ones(1, 3).cuda()
 
-        for it in range(200):
+        for it in range(5000):
             teacher_model.zero_grad()
             optimizer.zero_grad()
             for hook in hooks:

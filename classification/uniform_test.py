@@ -107,15 +107,16 @@ if __name__ == '__main__':
                               path='./data/imagenet/',
                               for_inception=args.model.startswith('inception'))
 
-    i = 0
-    for batch_idx, (inputs, targets) in enumerate(test_loader):
-        x1 = inputs.cpu().numpy()
-        x2 = np.moveaxis(x1, 1, -1)  #move from cxhxw to hxwxc
-        for j in range(x2.shape[0]):
-            x3 = np.reshape(inputs[j], (-1))
-            img_path = os.path.join('./img_dir/trueimages', "IMG{:04d}.txt".format(i))
-            np.savetxt(img_path, x3, delimiter=",", fmt='%f')
-            i+=1
+    # # save 1000 true images.
+    # i = 0
+    # for batch_idx, (inputs, targets) in enumerate(test_loader):
+    #     x1 = inputs.cpu().numpy()
+    #     x2 = np.moveaxis(x1, 1, -1)  #move from cxhxw to hxwxc
+    #     for j in range(x2.shape[0]):
+    #         x3 = np.reshape(inputs[j], (-1))
+    #         img_path = os.path.join('./img_dir/trueimages', "IMG{:04d}.txt".format(i))
+    #         np.savetxt(img_path, x3, delimiter=",", fmt='%f')
+    #         i+=1
 
     # Generate distilled data
     dataloader = getDistilData(
