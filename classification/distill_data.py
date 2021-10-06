@@ -125,7 +125,7 @@ def getDistilData(teacher_model,
         gaussian_data = gaussian_data.cuda()
         gaussian_data.requires_grad = True
         crit = nn.CrossEntropyLoss().cuda()
-        optimizer = optim.Adam([gaussian_data], lr=0.07, betas=(0.9, 0.999))
+        optimizer = optim.Adam([gaussian_data], lr=0.075, betas=(0.9, 0.999))
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,
                                                          min_lr=1e-4,
                                                          verbose=False,
@@ -188,7 +188,15 @@ def getDistilData(teacher_model,
             if i==0:
                 if it % 100 == 0:
                     std, mean = torch.std_mean(gaussian_data, unbiased=False)
-                    print("it {} total_loss {:.2f} mean_loss {:.2f} std_loss {:.2f}, target_loss {:.2f}. min/max= {:.2f} {:.2f} std/mean {:.2f} {:.2f} ".format(it, total_loss, mean_loss, std_loss, 0, torch.min(gaussian_data), torch.max(gaussian_data), std, mean))
+                    gf = gaussian_data.flatten()
+                    k = int(gf.nelement() * 0.005)
+                    if k==0:
+                        k = 1
+                    ka, _ = torch.topk(gf, k, largest=False)
+                    min2 = ka[-1]
+                    ka, _ = torch.topk(gf, k, largest=True)
+                    max2 = ka[-1]
+                    print("it {} total_loss {:.2f} mean_loss {:.2f} std_loss {:.2f}, target_loss {:.2f}. min_min2/max_2_max= {:.2f} {:.2f} {:.2f} {:.2f} std/mean {:.2f} {:.2f} ".format(it, total_loss, mean_loss, std_loss, 0, torch.min(gaussian_data), min2, max2, torch.max(gaussian_data), std, mean))
 
                     sumwriter.add_scalars('epoch', {'total_loss': total_loss,
                                                     'mean_loss': mean_loss,
