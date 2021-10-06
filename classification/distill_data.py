@@ -40,6 +40,7 @@ def own_loss(A, B):
     Shape of A should be (features_num, ), shape of B should be (batch_size, features_num)
 	"""
     return (A - B).norm()**2 / B.size(0)
+    # return (A - B).norm()**2
 
 
 class output_hook(object):
@@ -113,6 +114,10 @@ def getDistilData(teacher_model,
                             eps).detach().clone().flatten().cuda()))
     assert len(hooks) == len(bn_stats)
 
+    target = torch.zeros(64, 1000, dtype=torch.long)
+    b = torch.tensor([*range(64)]).reshape(-1,1)
+    target.scatter_(1, b, value=1)
+    target = target.cuda()
     for i, gaussian_data in enumerate(dataloader):
         if i == num_batch:
             break
@@ -120,7 +125,7 @@ def getDistilData(teacher_model,
         gaussian_data = gaussian_data.cuda()
         gaussian_data.requires_grad = True
         crit = nn.CrossEntropyLoss().cuda()
-        optimizer = optim.Adam([gaussian_data], lr=0.5)
+        optimizer = optim.Adam([gaussian_data], lr=0.07, betas=(0.9, 0.999))
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,
                                                          min_lr=1e-4,
                                                          verbose=False,
@@ -135,13 +140,20 @@ def getDistilData(teacher_model,
             for hook in hooks:
                 hook.clear()
             output = teacher_model(gaussian_data)
+            # target_loss = crit(output, torch.max(target,1)[1]) * 10000000
+            # target_loss = crit(output, target.squeeze()) * 10000
             mean_loss = 0
             std_loss = 0
+            min_loss = 0
+            max_loss = 0
 
             # compute the loss according to the BatchNorm statistics and the statistics of intermediate output
             for cnt, (bn_stat, hook) in enumerate(zip(bn_stats, hooks)):
                 tmp_output = hook.outputs
                 bn_mean, bn_std = bn_stat[0], bn_stat[1]
+                # bn_min = bn_mean - 3 * bn_std
+                # bn_max = bn_mean + 3 * bn_std
+
                 tmp_mean = torch.mean(tmp_output.view(tmp_output.size(0),
                                                       tmp_output.size(1), -1),
                                       dim=2)
@@ -149,8 +161,14 @@ def getDistilData(teacher_model,
                     torch.var(tmp_output.view(tmp_output.size(0),
                                               tmp_output.size(1), -1),
                               dim=2) + eps)
+                # tmp_min = tmp_mean - 3 * tmp_std
+                # tmp_max = tmp_mean + 3 * tmp_std
+
                 mean_loss += own_loss(bn_mean, tmp_mean)
                 std_loss += own_loss(bn_std, tmp_std)
+                # min_loss += own_loss(bn_min, tmp_min)
+                # max_loss += own_loss(bn_max, tmp_max)
+
             tmp_mean = torch.mean(gaussian_data.view(gaussian_data.size(0), 3,
                                                      -1),
                                   dim=2)
@@ -159,12 +177,18 @@ def getDistilData(teacher_model,
                           dim=2) + eps)
             mean_loss += own_loss(input_mean, tmp_mean)
             std_loss += own_loss(input_std, tmp_std)
+            # min_loss += own_loss(bn_min, tmp_min)
+            # max_loss += own_loss(bn_max, tmp_max)
+
+
             total_loss = mean_loss + std_loss
+            #  + min_loss + max_loss
+            # + target_loss
+            # total_loss = target_loss
             if i==0:
                 if it % 100 == 0:
-                    print("it {} total_loss {} mean_loss {} std_loss {}".format(it, total_loss, mean_loss, std_loss))
                     std, mean = torch.std_mean(gaussian_data, unbiased=False)
-                    print("training {} min/max= {} {} std/mean {} {} ".format(it, torch.min(gaussian_data), torch.max(gaussian_data), std, mean))
+                    print("it {} total_loss {:.2f} mean_loss {:.2f} std_loss {:.2f}, target_loss {:.2f}. min/max= {:.2f} {:.2f} std/mean {:.2f} {:.2f} ".format(it, total_loss, mean_loss, std_loss, 0, torch.min(gaussian_data), torch.max(gaussian_data), std, mean))
 
                     sumwriter.add_scalars('epoch', {'total_loss': total_loss,
                                                     'mean_loss': mean_loss,

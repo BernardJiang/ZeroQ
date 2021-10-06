@@ -62,6 +62,7 @@ if __name__ == '__main__':
 
     sys.path.insert(0, '/workspace/develop/ZeroQ/classification')
     os.chdir("/workspace/develop/ZeroQ/classification")
+    result_folder='./data/img_dir/'
 
     args = arg_parse()
     torch.backends.cudnn.deterministic = False
@@ -72,10 +73,10 @@ if __name__ == '__main__':
     print('****** Full precision model loaded ******')
     
     #save the model.
-    torch.save(model.state_dict(),'./img_dir/mobilenetv2.pt',_use_new_zipfile_serialization=False)
+    torch.save(model.state_dict(), result_folder+'mobilenetv2.pt',_use_new_zipfile_serialization=False)
     try:
         import onnx
-        onnx_export_file = './img_dir/mobilenetv2_zeroq.onnx'
+        onnx_export_file = result_folder+'mobilenetv2_zeroq.onnx'
         print('\nStarting ONNX export with onnx %s...' % onnx.__version__)
         print('****onnx file****',onnx_export_file)
         model.eval()
@@ -92,11 +93,11 @@ if __name__ == '__main__':
                             output_names = ['classes', 'boxes'] if y is None else ['output'], # the model's output names
                             training=TrainingMode.PRESERVE,
                             keep_initializers_as_inputs=True,
-                            verbose=True
+                            verbose=False
         )        # Checks
         onnx_model = onnx.load(onnx_export_file)  # load onnx model
         onnx.checker.check_model(onnx_model)  # check onnx model
-        print(onnx.helper.printable_graph(onnx_model.graph))  # print a human readable model
+        # print(onnx.helper.printable_graph(onnx_model.graph))  # print a human readable model
         print('ONNX export success, saved as %s' % onnx_export_file)
     except Exception as e:
         print('ONNX export failure: %s' % e)
@@ -114,7 +115,7 @@ if __name__ == '__main__':
     #     x2 = np.moveaxis(x1, 1, -1)  #move from cxhxw to hxwxc
     #     for j in range(x2.shape[0]):
     #         x3 = np.reshape(inputs[j], (-1))
-    #         img_path = os.path.join('./img_dir/trueimages', "IMG{:04d}.txt".format(i))
+    #         img_path = os.path.join(result_folder+'/trueimages', "IMG{:04d}.txt".format(i))
     #         np.savetxt(img_path, x3, delimiter=",", fmt='%f')
     #         i+=1
 
@@ -134,7 +135,7 @@ if __name__ == '__main__':
         i = 0
         for i in range(x2.shape[0]):
             x3 = np.reshape(x2[i], (-1))
-            img_path = os.path.join('./img_dir/zeroqdata', "IMG{:04d}.txt".format(i))
+            img_path = os.path.join(result_folder+'zeroqdata', "IMG{:04d}.txt".format(i))
             np.savetxt(img_path, x3, delimiter=",", fmt='%f')
             
 
@@ -164,6 +165,6 @@ if __name__ == '__main__':
     # Test the final quantized model
     test(quantized_model, test_loader)
 
-    torch.save(model.state_dict(),'./img_dir/mobilenetv2_quan.pt',_use_new_zipfile_serialization=False)
+    torch.save(model.state_dict(), result_folder + 'mobilenetv2_quan.pt', _use_new_zipfile_serialization=False)
 
 
