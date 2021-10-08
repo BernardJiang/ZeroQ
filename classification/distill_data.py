@@ -128,13 +128,14 @@ def getDistilData(teacher_model,
         optimizer = optim.Adam([gaussian_data], lr=0.075, betas=(0.9, 0.999))
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,
                                                          min_lr=1e-4,
+                                                         factor=0.9,
                                                          verbose=False,
                                                          patience=100)
 
         input_mean = torch.zeros(1, 3).cuda()
         input_std = torch.ones(1, 3).cuda()
 
-        for it in range(5000):
+        for it in range(15000):
             teacher_model.zero_grad()
             optimizer.zero_grad()
             for hook in hooks:
@@ -187,6 +188,8 @@ def getDistilData(teacher_model,
             # total_loss = target_loss
             if i==0:
                 if it % 100 == 0:
+                    # lr = scheduler.get_last_lr()[0] # latest pytorch 1.5+ uses get_last_lr,  previously it was get_lr iirc;
+                    lr1 = optimizer.param_groups[0]["lr"] # either the above line or this, both should do the same thing
                     std, mean = torch.std_mean(gaussian_data, unbiased=False)
                     gf = gaussian_data.flatten()
                     k = int(gf.nelement() * 0.005)
@@ -196,7 +199,7 @@ def getDistilData(teacher_model,
                     min2 = ka[-1]
                     ka, _ = torch.topk(gf, k, largest=True)
                     max2 = ka[-1]
-                    print("it {} total_loss {:.2f} mean_loss {:.2f} std_loss {:.2f}, target_loss {:.2f}. min_min2/max_2_max= {:.2f} {:.2f} {:.2f} {:.2f} std/mean {:.2f} {:.2f} ".format(it, total_loss, mean_loss, std_loss, 0, torch.min(gaussian_data), min2, max2, torch.max(gaussian_data), std, mean))
+                    print("it {} total_loss {:.2f} mean_loss {:.2f} std_loss {:.2f}, target_loss {:.2f}. min_min2/max_2_max= {:.2f} {:.2f} {:.2f} {:.2f} std/mean {:.2f} {:.2f} .LR {:.5f}".format(it, total_loss, mean_loss, std_loss, 0, torch.min(gaussian_data), min2, max2, torch.max(gaussian_data), std, mean, lr1))
 
                     sumwriter.add_scalars('epoch', {'total_loss': total_loss,
                                                     'mean_loss': mean_loss,

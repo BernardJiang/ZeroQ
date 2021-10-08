@@ -38,7 +38,7 @@ class UniformDataset(Dataset):
     def __getitem__(self, idx):
         # var[U(-128, 127)] = (127 - (-128))**2 / 12 = 5418.75
         sample = (torch.randint(high=255, size=self.size).float() -
-                  127.5) / 5418.75
+                  127.5) / 128.0 *2.07
         return sample
 
 
@@ -98,7 +98,17 @@ def getTestData(dataset='imagenet',
 
         for batch_idx, (inputs, targets) in enumerate(test_loader):
             std, mean = torch.std_mean(inputs, unbiased=False)
-            print("test data idx{} min/max= {} {} std/mean {} {} ".format(batch_idx, torch.min(inputs), torch.max(inputs), std, mean))
+
+            gf = inputs.flatten()
+            k = int(gf.nelement() * 0.005)
+            if k==0:
+               k = 1
+            ka, _ = torch.topk(gf, k, largest=False)
+            min2 = ka[-1]
+            ka, _ = torch.topk(gf, k, largest=True)
+            max2 = ka[-1]
+
+            print("test data idx{} min_min2/max_2_max= {:.2f} {:.2f} {:.2f} {:.2f} std/mean {:.2f} {:.2f}".format(batch_idx, torch.min(inputs), min2, max2, torch.max(inputs), std, mean))
             # for i in range(inputs.shape[0]):
             #     print(i, torch.min(inputs[i]), torch.max(inputs[i]))
 
