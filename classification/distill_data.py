@@ -128,7 +128,7 @@ def getDistilData(teacher_model,
         optimizer = optim.Adam([gaussian_data], lr=0.075, betas=(0.9, 0.999))
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,
                                                          min_lr=1e-4,
-                                                         factor=0.9,
+                                                         factor=0.95,
                                                          verbose=False,
                                                          patience=100)
 
