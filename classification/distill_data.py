@@ -40,7 +40,7 @@ def own_loss(A, B):
     Shape of A should be (features_num, ), shape of B should be (batch_size, features_num)
 	"""
     return (A - B).norm()**2 / B.size(0)
-    # return (A - B).norm()**2
+    # return ((B - A -1e-3)/(A+1e-3)).norm()**2
 
 
 class output_hook(object):
@@ -142,7 +142,6 @@ def getDistilData(teacher_model,
                 hook.clear()
             output = teacher_model(gaussian_data)
             target_loss = crit(output, torch.max(target,1)[1]) * 10000
-            # target_loss = crit(output, target.squeeze()) * 10000
             mean_loss = 0
             std_loss = 0
             min_loss = 0
