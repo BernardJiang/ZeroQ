@@ -113,33 +113,33 @@ if __name__ == '__main__':
     #     x1 = inputs.cpu().numpy()
     #     x2 = np.moveaxis(x1, 1, -1)  #move from cxhxw to hxwxc
     #     for j in range(x2.shape[0]):
-    #         x3 = np.reshape(x2[j], (-1))
+    #         x3 = np.reshape(inputs[j], (-1))
     #         img_path = os.path.join(result_folder+'/trueimages', "IMG{:04d}.txt".format(targets[j]))
     #         np.savetxt(img_path, x3, delimiter=",", fmt='%f')
 
     # Generate distilled data
-    dataloader = getDistilData(
-        model.cuda(),
-        args.dataset,
-        batch_size=args.batch_size,
-        for_inception=args.model.startswith('inception'))
-    print('****** Data loaded ******')
+    # dataloader = getDistilData(
+    #     model.cuda(),
+    #     args.dataset,
+    #     batch_size=args.batch_size,
+    #     for_inception=args.model.startswith('inception'))
+    # print('****** Data loaded ******')
 
     # save all distilled data
-    for idx, x in enumerate(dataloader):
-        x1 = x.cpu().numpy()
-        x2 = np.moveaxis(x1, 1, -1)  #move from cxhxw to hxwxc
-        # x3 = np.reshape(x2, (-1))
-        i = 0
-        for i in range(x2.shape[0]):
-            x3 = np.reshape(x2[i], (-1))
-            img_path = os.path.join(result_folder+'zeroqdata', "IMG{:04d}.txt".format(i))
-            np.savetxt(img_path, x3, delimiter=",", fmt='%f')
+    # for idx, x in enumerate(dataloader):
+    #     x1 = x.cpu().numpy()
+    #     x2 = np.moveaxis(x1, 1, -1)  #move from cxhxw to hxwxc
+    #     # x3 = np.reshape(x2, (-1))
+    #     i = 0
+    #     for i in range(x2.shape[0]):
+    #         x3 = np.reshape(x2[i], (-1))
+    #         img_path = os.path.join(result_folder+'zeroqdata', "IMG{:04d}.txt".format(i))
+    #         np.savetxt(img_path, x3, delimiter=",", fmt='%f')
             
 
 
     # Quantize single-precision model to 8-bit model
-    quantized_model = quantize_model(model)
+    quantized_model = model # quantize_model(model)
     # Freeze BatchNorm statistics
     quantized_model.eval()
     quantized_model = quantized_model.cuda()
@@ -151,13 +151,13 @@ if __name__ == '__main__':
     # test(model_0, test_loader)
 
     # Update activation range according to distilled data
-    update(quantized_model, dataloader)
-    print('****** Zero Shot Quantization Finished ******')
+    # update(quantized_model, dataloader)
+    # print('****** Zero Shot Quantization Finished ******')
     
     # print_model_range(quantized_model)
 
     # Freeze activation range during test
-    freeze_model(quantized_model)
+    # freeze_model(quantized_model)
     quantized_model = nn.DataParallel(quantized_model).cuda()
 
     # Test the final quantized model
