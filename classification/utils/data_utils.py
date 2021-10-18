@@ -86,8 +86,8 @@ def getTestData(dataset='imagenet',
         test_dataset = datasets.ImageFolder(
             path + 'val',
             transforms.Compose([
-                transforms.Resize(int(input_size / 0.875)),
-                transforms.CenterCrop(input_size),
+                transforms.Resize([input_size, input_size]),
+                # transforms.CenterCrop(input_size),
                 transforms.ToTensor(),
                 normalize,
             ]))

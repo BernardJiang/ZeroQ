@@ -36,6 +36,7 @@ def test(model, test_loader):
             inputs, targets = inputs.cuda(), targets.cuda()
             outputs = model(inputs)
             _, predicted = outputs.max(1)
+            print("predicted= ", predicted)
             total += targets.size(0)
             correct += predicted.eq(targets).sum().item()
             acc = correct / total
