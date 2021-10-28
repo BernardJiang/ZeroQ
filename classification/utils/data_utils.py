@@ -38,7 +38,7 @@ class UniformDataset(Dataset):
     def __getitem__(self, idx):
         # var[U(-128, 127)] = (127 - (-128))**2 / 12 = 5418.75
         sample = (torch.randint(high=255, size=self.size).float() -
-                  127.5) / 128.0 *2.07
+                  127.5) / 128.0 * 2
         return sample
 
 
